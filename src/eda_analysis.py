@@ -163,7 +163,9 @@ def plot_eda_visualizations(df: pd.DataFrame, output_dir: str = '../plots') -> N
         ('CustomValueEstimate', 'Outliers in Custom Value Estimate', 'custom_value_boxplot.png'),
     ]:
         plt.figure(figsize=(10, 6))
-        sns.boxplot(x=df[col], color='lightgreen')
+        sns.boxplot(
+            x=df[col],
+            color='lightgreen')
         plt.title(title, fontsize=14)
         plt.xlabel(col, fontsize=12)
         plt.savefig(f'{output_dir}/{filename}', bbox_inches='tight')
@@ -184,7 +186,12 @@ def plot_eda_visualizations(df: pd.DataFrame, output_dir: str = '../plots') -> N
 
     # 2: Claim Severity by Vehicle Type and Cover Type
     plt.figure(figsize=(12, 6))
-    sns.boxplot(x='VehicleType', y='TotalClaims', hue='CoverType', data=df, palette='Set3')
+    claims_by_month_province = pd.pivot_table(
+        df,
+        values='TotalClaims',
+        index='Province',
+        columns='TransactionMonth',
+        aggfunc='sum')
     plt.title('Claim Severity by Vehicle Type and Cover Type', fontsize=14)
     plt.xticks(rotation=45, ha='right')
     plt.xlabel('Vehicle Type', fontsize=12)
@@ -196,8 +203,11 @@ def plot_eda_visualizations(df: pd.DataFrame, output_dir: str = '../plots') -> N
 
     # 3: Heatmap of Claims by Province and Month
     claims_by_month_province = pd.pivot_table(
-        df, values='TotalClaims', index='Province', columns='TransactionMonth', aggfunc='sum'
-    )
+        df,
+        values='TotalClaims',
+        index='Province',
+        columns='TransactionMonth',
+        aggfunc='sum')    
     plt.figure(figsize=(14, 8))
     sns.heatmap(claims_by_month_province, cmap='YlOrRd', annot=True, fmt='.0f')
     plt.title('Total Claims by Province and Month', fontsize=14)

@@ -1,4 +1,3 @@
-# acis_project_week3
 # ACIS Insurance Analytics Project
 
 ## Overview

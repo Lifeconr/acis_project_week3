@@ -50,4 +50,57 @@ Establish a reproducible and auditable data pipeline using DVC for regulatory co
 3. **Task 2**:
    - Ensure DVC is installed and initialized (`dvc init`).
    - Pull data: `dvc pull` to restore `data/cleaned_data.csv` from the local remote.
+4. **Task 3**: Feature Engineering and Metric Construction
+      Objective
+      Construct derived features and key performance metrics to improve model interpretability and predictive power.
+      
+      Steps
+      
+      Created variables like PolicyAge (based on transaction date), and PremiumToClaimRatio to measure cost efficiency.
+      
+      Built derived KPIs including HasClaim, ClaimSeverity, ClaimFrequency, and Margin.
+      
+      Handled mixed-type and missing data to ensure numerical stability.
+      
+      One-hot encoded categorical variables (Province, Gender, VehicleType, make).
+      
+      Files
+      
+      src/eda_analysis.py: compute_metrics() function.
+      
+      src/modeling.py: Feature generation integrated into prepare_data().
+
+5. **Task 4**: Predictive Modeling for Risk-Based Pricing
+      Objective
+      Develop machine learning models to:
+      
+      Predict Claim Severity (for customers who file claims)
+      
+      Predict Claim Probability (whether a customer will claim at all)
+      
+      Steps
+      
+      Built and evaluated models: Linear Regression, Decision Trees, Random Forests, and XGBoost.
+      
+      Assessed models using metrics:
+      
+      Severity: RMSE, R²
+      
+      Probability: Accuracy, Precision, Recall, F1 Score
+      
+      Applied SHAP for interpretability of the best-performing models.
+      
+      Results
+      
+      Identified top predictive features: PolicyAge, TotalPremium, CalculatedPremiumPerTerm.
+      
+      Visualized SHAP summaries to guide pricing strategy.
+
+**Files**
+
+      src/modeling.py: prepare_data, build_models, evaluate_models, interpret_model
+      
+      notebooks/: Visual summary of results
+      
+      plots/: SHAP interpretability graphs
 

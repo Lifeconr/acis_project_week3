@@ -18,7 +18,7 @@ def prepare_data(df_path: str, dvc_file: str = '../data/cleaned_data.csv.dvc') -
         tuple: Training and test splits for severity and probability models.
     """
     os.system(f'dvc pull {dvc_file}')
-    df = pd.read_csv(df_path)
+    df = pd.read_csv(df_path, low_memory=False)  # prevent dtype warning
 
     # Ensure required metrics are present
     required_cols = ['HasClaim', 'ClaimFrequency', 'ClaimSeverity', 'Margin']
@@ -26,29 +26,44 @@ def prepare_data(df_path: str, dvc_file: str = '../data/cleaned_data.csv.dvc') -
         from src.eda_analysis import compute_metrics
         df = compute_metrics(df)
 
-    # Handling missing data
+    # Handle missing or invalid claim values
     df = df.dropna(subset=['TotalClaims', 'TotalPremium', 'CalculatedPremiumPerTerm'])
+    df = df[df['TotalClaims'] >= 0]  # Remove negative claims
     df['PostalCode'] = df['PostalCode'].fillna(df['PostalCode'].mode()[0])
 
+    # Handle and convert TransactionMonth
+    df = df.dropna(subset=['TransactionMonth'])
+    df['TransactionMonth'] = pd.to_datetime(df['TransactionMonth'], errors='coerce')
+    df = df.dropna(subset=['TransactionMonth'])
+    df['PolicyAge'] = (pd.to_datetime('2025-06-19') - df['TransactionMonth']).dt.days / 365
+    df.drop(columns=['TransactionMonth'], inplace=True)
+
+    # Drop unnecessary columns
+    df = df.drop(columns=['PolicyID', 'CustomerName'], errors='ignore')
+
     # Feature engineering
-    df['PolicyAge'] = (pd.to_datetime('2025-06-19') - pd.to_datetime(df['TransactionMonth'])).dt.days / 365
-    df.drop(columns=['TransactionMonth'], inplace=True)  # <<== Add this line
-    df = df.drop(columns=['PolicyID', 'CustomerName'], errors='ignore')  # Safely ignore if missing
     df['PremiumToClaimRatio'] = df['TotalPremium'] / df['TotalClaims'].replace(0, 1)
-    
-    # Encoding categorical variables
+
+    # Encode categorical variables
     categorical_cols = ['Province', 'Gender', 'VehicleType', 'make']
     df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
 
-    # Claim severity model (only where claims exist)
-    df_severity = df[df['TotalClaims'] > 0].copy()
+    # Remove any remaining non-numeric columns
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df = df.drop(columns=[col])
+
+    # Claim severity model data (claims > 0)
+    df_severity = df[(df['TotalClaims'] > 0)].copy()
+    if df_severity.empty:
+        raise ValueError("No valid rows with TotalClaims > 0 found. Please check your input data.")
     X_severity = df_severity.drop(['TotalClaims'], axis=1)
     y_severity = df_severity['TotalClaims']
     X_train_sev, X_test_sev, y_train_sev, y_test_sev = train_test_split(
         X_severity, y_severity, test_size=0.2, random_state=42
     )
 
-    # Claim probability model (binary target)
+    # Claim probability model data
     df_prob = df.copy()
     y_prob = df_prob['HasClaim']
     X_prob = df_prob.drop(['HasClaim', 'TotalClaims'], axis=1)
